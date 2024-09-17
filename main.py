@@ -1,7 +1,9 @@
 import gradio as gr
 import numpy as np
 from PIL import Image, ImageEnhance, ImageFilter, ImageDraw
+from collections import deque
 
+# Funciones de edición de imagen (sin cambios)
 def adjust_brightness(image, brightness):
     enhancer = ImageEnhance.Brightness(Image.fromarray(image))
     return np.array(enhancer.enhance(brightness))
@@ -30,6 +32,9 @@ def draw_on_image(image, x, y, brush_size, color):
     draw.ellipse([x-brush_size, y-brush_size, x+brush_size, y+brush_size], fill=tuple(color))
     return np.array(img)
 
+# Historial de imágenes
+image_history = deque(maxlen=10)
+
 def edit_image(image, brightness, contrast, blur, sharpen, gray):
     if image is None:
         return None
@@ -48,6 +53,17 @@ def edit_image(image, brightness, contrast, blur, sharpen, gray):
     
     return result
 
+def update_image(image, brightness, contrast, blur, sharpen, gray):
+    if image is not None:
+        image_history.append(np.copy(image))
+    return edit_image(image, brightness, contrast, blur, sharpen, gray)
+
+def undo_changes():
+    if len(image_history) > 0:
+        return image_history.pop()
+    else:
+        return None
+
 with gr.Blocks() as demo:
     gr.Markdown("# Editor de Imágenes Avanzado")
     
@@ -60,6 +76,7 @@ with gr.Blocks() as demo:
                 sharpen = gr.Checkbox(label="Enfocar")
                 gray = gr.Checkbox(label="Escala de grises")
                 apply_button = gr.Button("Aplicar Ajustes")
+                undo_button = gr.Button("Deshacer")
 
             with gr.Accordion("Herramienta de Pincel", open=False):
                 brush_size = gr.Slider(1, 50, 10, label="Tamaño del Pincel")
@@ -67,15 +84,10 @@ with gr.Blocks() as demo:
 
         with gr.Column(scale=3):
             try:
-                # Intenta crear el componente Image con la herramienta de dibujo
                 image_input = gr.Image(tool="sketch", type="numpy", label="Lienzo")
             except TypeError:
-                # Si falla, crea un componente Image básico
                 image_input = gr.Image(type="numpy", label="Lienzo")
                 gr.Markdown("Nota: La herramienta de dibujo no está disponible en esta versión de Gradio.")
-    
-    def update_image(image, brightness, contrast, blur, sharpen, gray):
-        return edit_image(image, brightness, contrast, blur, sharpen, gray)
     
     apply_button.click(
         update_image,
@@ -83,7 +95,12 @@ with gr.Blocks() as demo:
         outputs=image_input
     )
 
-    # Solo añade la función de edición si el componente Image soporta la herramienta de dibujo
+    undo_button.click(
+        undo_changes,
+        inputs=[],
+        outputs=image_input
+    )
+
     if hasattr(image_input, 'tool') and image_input.tool == "sketch":
         image_input.edit(
             draw_on_image,
