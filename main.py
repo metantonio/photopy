@@ -2,9 +2,9 @@ import gradio as gr
 import numpy as np
 from PIL import Image, ImageEnhance, ImageFilter, ImageDraw
 from collections import deque
-from functions.image_conversion import convert_image_format, load_image
+from functions.image_conversion import convert_image_format, load_image, open_folder
 
-# Existing image editing functions (unchanged)
+# Funciones de edición de imagen (sin cambios)
 def adjust_brightness(image, brightness):
     enhancer = ImageEnhance.Brightness(Image.fromarray(image))
     return np.array(enhancer.enhance(brightness))
@@ -33,7 +33,7 @@ def draw_on_image(image, x, y, brush_size, color):
     draw.ellipse([x-brush_size, y-brush_size, x+brush_size, y+brush_size], fill=tuple(color))
     return np.array(img)
 
-# Image history
+# Historial de imágenes
 image_history = deque(maxlen=10)
 
 def edit_image(image, brightness, contrast, blur, sharpen, gray):
@@ -65,41 +65,42 @@ def undo_changes():
     else:
         return None
 
-# New function to handle image conversion
-def handle_conversion(image, target_format, save_path):
-    converted_image_path = convert_image_format(image, target_format, save_path)
-    converted_image = load_image(converted_image_path)
-    return converted_image
+def convert_image_and_notify(image, target_format):
+    try:
+        converted_image_path = convert_image_format(image, target_format)
+        return f"Image successfully converted and saved at: {converted_image_path}"
+    except Exception as e:
+        return str(e)
 
 with gr.Blocks() as demo:
-    gr.Markdown("# Advanced Image Editor")
+    gr.Markdown("# Editor de Imágenes Avanzado")
     
     with gr.Row():
         with gr.Column(scale=1):
-            with gr.Accordion("Image Adjustments", open=False):
-                brightness = gr.Slider(0.1, 2.0, 1.0, label="Brightness")
-                contrast = gr.Slider(0.1, 2.0, 1.0, label="Contrast")
-                blur = gr.Slider(0, 10, 0, label="Blur")
-                sharpen = gr.Checkbox(label="Sharpen")
-                gray = gr.Checkbox(label="Grayscale")
-                apply_button = gr.Button("Apply Adjustments")
-                undo_button = gr.Button("Undo")
-                
-            with gr.Accordion("Brush Tool", open=False):
-                brush_size = gr.Slider(1, 50, 10, label="Brush Size")
-                color_picker = gr.ColorPicker(label="Brush Color")
-                
-            with gr.Accordion("Image Conversion", open=False):
-                target_format = gr.Dropdown(choices=["JPEG", "PNG", "BMP", "GIF"], label="Target Format")
-                save_path = gr.Textbox(label="Save Path")
-                convert_button = gr.Button("Convert Image")
+            with gr.Accordion("Ajustes de Imagen", open=False):
+                brightness = gr.Slider(0.1, 2.0, 1.0, label="Brillo")
+                contrast = gr.Slider(0.1, 2.0, 1.0, label="Contraste")
+                blur = gr.Slider(0, 10, 0, label="Desenfoque")
+                sharpen = gr.Checkbox(label="Enfocar")
+                gray = gr.Checkbox(label="Escala de grises")
+                apply_button = gr.Button("Aplicar Ajustes")
+                undo_button = gr.Button("Deshacer")
+
+            """ with gr.Accordion("Herramienta de Pincel", open=False):
+                brush_size = gr.Slider(1, 50, 10, label="Tamaño del Pincel")
+                color_picker = gr.ColorPicker(label="Color del Pincel") """
+
+            with gr.Accordion("Convertir Imagen", open=False):
+                target_format = gr.Dropdown(["JPEG", "PNG", "BMP", "GIF"], label="Formato de Destino")
+                convert_button = gr.Button("Convertir")
+                conversion_message = gr.Textbox(label="Mensaje de Conversión", interactive=False)
 
         with gr.Column(scale=3):
             try:
-                image_input = gr.Image(tool="sketch", type="numpy", label="Canvas")
+                image_input = gr.Image(tool="sketch", type="numpy", label="Lienzo")
             except TypeError:
-                image_input = gr.Image(type="numpy", label="Canvas")
-                gr.Markdown("Note: The sketch tool is not available in this version of Gradio.")
+                image_input = gr.Image(type="numpy", label="Lienzo")
+                gr.Markdown("Nota: La herramienta de dibujo no está disponible en esta versión de Gradio.")
     
     apply_button.click(
         update_image,
@@ -114,9 +115,9 @@ with gr.Blocks() as demo:
     )
 
     convert_button.click(
-        handle_conversion,
-        inputs=[image_input, target_format, save_path],
-        outputs=image_input
+        convert_image_and_notify,
+        inputs=[image_input, target_format],
+        outputs=conversion_message
     )
 
     if hasattr(image_input, 'tool') and image_input.tool == "sketch":
