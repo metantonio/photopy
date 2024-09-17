@@ -3,6 +3,7 @@ import numpy as np
 from PIL import Image, ImageEnhance, ImageFilter, ImageDraw
 from collections import deque
 from functions.image_conversion import convert_image_format, load_image, open_folder
+from functions.image_resize import resize_image
 
 # Funciones de edición de imagen (sin cambios)
 def adjust_brightness(image, brightness):
@@ -71,6 +72,16 @@ def convert_image_and_notify(image, target_format):
         return f"Image successfully converted and saved at: {converted_image_path}"
     except Exception as e:
         return str(e)
+    
+def resize_image_and_notify(image, width, height):
+    try:
+        resized_image = resize_image(image, width, height)
+        return resized_image, f"Image successfully resized to {width}x{height} pixels."
+    except Exception as e:
+        return image, str(e)
+
+def handle_open_folder():
+    open_folder()
 
 with gr.Blocks() as demo:
     gr.Markdown("# Editor de Imágenes Avanzado")
@@ -95,12 +106,23 @@ with gr.Blocks() as demo:
                 convert_button = gr.Button("Convertir")
                 conversion_message = gr.Textbox(label="Mensaje de Conversión", interactive=False)
 
+            with gr.Accordion("Redimensionar Imagen", open=False):
+                width = gr.Number(label="Ancho en píxeles", value=100)
+                height = gr.Number(label="Alto en píxeles", value=100)
+                resize_button = gr.Button("Redimensionar")
+                resize_message = gr.Textbox(label="Mensaje de Redimensionamiento", interactive=False)
+
+            #save_path = gr.Textbox(label="Save Path")
+            open_folder_button = gr.Button("Open Folder")
+
+
         with gr.Column(scale=3):
             try:
                 image_input = gr.Image(tool="sketch", type="numpy", label="Lienzo")
             except TypeError:
                 image_input = gr.Image(type="numpy", label="Lienzo")
-                gr.Markdown("Nota: La herramienta de dibujo no está disponible en esta versión de Gradio.")
+                #gr.Markdown("Nota: La herramienta de dibujo no está disponible en esta versión de Gradio.")
+            gr.Markdown("Note: Tool created by Antonio Martínez @metantonio")
     
     apply_button.click(
         update_image,
@@ -118,6 +140,18 @@ with gr.Blocks() as demo:
         convert_image_and_notify,
         inputs=[image_input, target_format],
         outputs=conversion_message
+    )
+
+    resize_button.click(
+        resize_image_and_notify,
+        inputs=[image_input, width, height],
+        outputs=[image_input, resize_message]
+    )
+
+    open_folder_button.click(
+        handle_open_folder,
+        inputs=[],
+        outputs=None
     )
 
     if hasattr(image_input, 'tool') and image_input.tool == "sketch":
