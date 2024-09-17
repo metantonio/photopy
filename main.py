@@ -161,4 +161,5 @@ with gr.Blocks() as demo:
             outputs=image_input
         )
 
-demo.launch()
+if __name__ == "main":
+    demo.launch()
