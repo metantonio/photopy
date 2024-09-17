@@ -162,4 +162,7 @@ with gr.Blocks() as demo:
         )
 
 if __name__ == "main":
-    demo.launch()
+    try:
+        demo.launch()
+    except Exception as e:
+        print(f"Se produjo un error: {str(e)}")

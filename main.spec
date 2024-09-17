@@ -5,8 +5,17 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[],
-    hiddenimports=[],
+    datas=[
+        ('functions/*.py', 'functions'),
+        ('flagged/output', 'flagged'),
+        ('flagged/image', 'flagged')
+    ],
+    hiddenimports=[
+        'PIL',  # Incluye PIL para asegurarte de que todos los submódulos necesarios se incluyen
+        'collections',
+        'numpy',
+        'gradio'
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -14,6 +23,7 @@ a = Analysis(
     noarchive=False,
     optimize=0,
 )
+
 pyz = PYZ(a.pure)
 
 exe = EXE(
@@ -23,7 +33,7 @@ exe = EXE(
     a.datas,
     [],
     name='main',
-    debug=False,
+    debug=True,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
