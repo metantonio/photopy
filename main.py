@@ -66,8 +66,8 @@ def undo_changes():
         return None
 
 # New function to handle image conversion
-def handle_conversion(image, target_format):
-    converted_image_path = convert_image_format(image, target_format)
+def handle_conversion(image, target_format, save_path):
+    converted_image_path = convert_image_format(image, target_format, save_path)
     converted_image = load_image(converted_image_path)
     return converted_image
 
@@ -91,6 +91,7 @@ with gr.Blocks() as demo:
                 
             with gr.Accordion("Image Conversion", open=False):
                 target_format = gr.Dropdown(choices=["JPEG", "PNG", "BMP", "GIF"], label="Target Format")
+                save_path = gr.Textbox(label="Save Path")
                 convert_button = gr.Button("Convert Image")
 
         with gr.Column(scale=3):
@@ -114,7 +115,7 @@ with gr.Blocks() as demo:
 
     convert_button.click(
         handle_conversion,
-        inputs=[image_input, target_format],
+        inputs=[image_input, target_format, save_path],
         outputs=image_input
     )
 
